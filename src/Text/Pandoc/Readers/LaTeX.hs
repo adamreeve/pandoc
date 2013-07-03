@@ -49,7 +49,7 @@ import Control.Applicative
 import Data.Monoid
 import System.Environment (getEnv)
 import System.FilePath (replaceExtension, (</>))
-import Data.List (intercalate, intersperse)
+import Data.List (intercalate, intersperse, isPrefixOf)
 import qualified Data.Map as M
 import qualified Control.Exception as E
 import System.FilePath (takeExtension, addExtension)
@@ -496,12 +496,27 @@ inlineCommands = M.fromList $
 mkImage :: String -> LP Inlines
 mkImage src = do
    -- try for a caption
+   -- if we get a caption, then the title is set to "fig:"
+   -- to make a figure.
    (alt, tit) <- option (str "image", "") $ try $ do
-                   spaces
-                   controlSeq "caption"
-                   optional (char '*')
-                   ils <- grouped inline
-                   return (ils, "fig:")
+        spaces
+        controlSeq "caption"
+        optional (char '*')
+        caption_ils <- grouped inline
+        -- if we have a caption, try for a label
+        -- must start with "fig:" to make a figure, but many LaTeX
+        -- documents already follow this convention.
+        tit <- option "fig:" $ try $ do
+            spaces
+            controlSeq "label"
+            label_ils <- grouped inline
+            let label = case toList label_ils of
+                             (Str s:_) -> s
+                             _ -> "fig:"
+            return $ if "fig:" `isPrefixOf` label
+                        then label
+                        else "fig:" ++ label
+        return (caption_ils, tit)
    case takeExtension src of
         "" -> do
               defaultExt <- getOption readerDefaultImageExtension

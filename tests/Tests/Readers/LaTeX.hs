@@ -59,6 +59,11 @@ tests = [ testGroup "basic"
           [ natbibCitations
           , biblatexCitations
           ]
+
+        , testGroup "images"
+          [ figures
+          , inlineImages
+          ]
         ]
 
 baseCitation :: Citation
@@ -167,4 +172,20 @@ biblatexCitations = testGroup "biblatex"
                                     Strong [Str "32"]] }] (rt "\\autocite[\\emph{see}][p. \\textbf{32}]{item1}"))
   , "parencite" =: "\\parencite{item1}"
     =?> para (cite [baseCitation{ citationMode = NormalCitation }] (rt "\\parencite{item1}"))
+  ]
+
+figures :: Test
+figures = testGroup "figures"
+  [ "figureWithCaption" =: "\\begin{figure} \\centering \\includegraphics{figurl} \\caption{caption} \\end{figure}"
+    =?> para (image "figurl" "fig:" $ fromList [Str "caption"])
+  , "figureWithLabel" =: "\\begin{figure} \\centering \\includegraphics{figurl} \\caption{caption} \\label{figlabel} \\end{figure}"
+    =?> para (image "figurl" "fig:figlabel" $ fromList [Str "caption"])
+  , "figureWithPosition" =: "\\begin{figure}[ht] \\centering \\includegraphics{figurl} \\caption{caption} \\end{figure}"
+    =?> para (image "figurl" "fig:" $ fromList [Str "caption"])
+  ]
+
+inlineImages :: Test
+inlineImages = testGroup "inlineImages"
+  [ "inlineImage" =: "\\includegraphics{figurl}. Text."
+    =?> para (fromList [Image [Str "image"] ("figurl", ""), Str ".", Space, Str "Text."])
   ]
